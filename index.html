@@ -437,20 +437,29 @@ let isSystemReady = false;
 
 function initSistemKameraDanGPS() {
     if(isSystemReady) return; 
-    
+
+    // --- 1. NYALAKAN KAMERA LANGSUNG (TIDAK PERLU NUNGGU GPS) ---
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+            document.getElementById('kamera').srcObject = stream;
+            document.getElementById('btn-jepret').disabled = false;
+            isSystemReady = true;
+        }).catch((err) => {
+            alert("Gagal mengakses kamera. Pastikan izin kamera aktif!");
+        });
+
+    // --- 2. CARI LOKASI & NAMA JALAN DI BACKGROUND ---
     navigator.geolocation.getCurrentPosition(async (pos) => {
         dataLokasi.lat = pos.coords.latitude; 
         dataLokasi.lon = pos.coords.longitude;
         document.getElementById('gps-status').innerText = "GPS Aktif";
         document.getElementById('gps-status').style.color = "var(--primary)";
 
-        // --- MENGAMBIL NAMA ALAMAT (REVERSE GEOCODING) ---
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${dataLokasi.lat}&lon=${dataLokasi.lon}`);
             const data = await response.json();
-            const addr = data.address;
+            const addr = data.address || {};
             
-            // Mengambil data spesifik: Kecamatan, Kota, Provinsi
             const kecamatan = addr.village || addr.suburb || addr.town || "";
             const kota = addr.city || addr.county || "";
             const provinsi = addr.state || "";
@@ -459,16 +468,9 @@ function initSistemKameraDanGPS() {
         } catch (error) {
             dataLokasi.address = "ALAMAT LOKASI TIDAK DITEMUKAN";
         }
-        // -------------------------------------------------
-
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(stream => {
-                document.getElementById('kamera').srcObject = stream;
-                document.getElementById('btn-jepret').disabled = false;
-                isSystemReady = true;
-            });
     }, () => {
         document.getElementById('gps-status').innerText = "GPS Gagal";
+        document.getElementById('gps-status').style.color = "var(--danger)";
     }, { enableHighAccuracy: true });
 }
 
