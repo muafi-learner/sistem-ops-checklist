@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Audit Compact</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #2563eb; 
+            --danger: #dc2626;  
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --radius: 6px;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 16px 8px; 
+            box-sizing: border-box;
+            line-height: 1.4;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px; 
+            background: var(--card);
+            padding: 20px 16px; 
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .header {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        h2 { font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--text-main); }
+        .status-bar { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+        .btn-back { 
+            position: absolute; top: 0; right: 0; 
+            background: transparent; border: 1px solid var(--border); 
+            padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; 
+            cursor: pointer; color: var(--text-main); font-weight: 500;
+        }
+        .btn-back:hover { background: var(--bg); }
+
+        .table-wrapper { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; min-width: 600px; }
+        
+        th { 
+            color: var(--text-muted); padding: 8px 6px; font-weight: 600; 
+            border-bottom: 2px solid var(--border); text-transform: uppercase;
+        }
+        td { 
+            padding: 8px 6px; border-bottom: 1px solid var(--border); 
+            vertical-align: middle; color: var(--text-main);
+        }
+        
+        .btn-submit { 
+            background: var(--danger); color: white; padding: 6px 8px; 
+            border-radius: 4px; font-size: 0.75rem; font-weight: 600; 
+            cursor: pointer; border: none; width: 100%; text-transform: uppercase;
+        }
+        .btn-submit:active { transform: scale(0.97); }
+
+        .badge-done { 
+            background: var(--primary); color: white; padding: 6px 8px; 
+            border-radius: 4px; font-size: 0.75rem; font-weight: 600; 
+            text-align: center; display: block; text-transform: uppercase;
+        }
+
+        .form-group { margin-bottom: 12px; } 
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
+        
+        .form-control { 
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border); 
+            border-radius: 4px; font-size: 0.85rem; box-sizing: border-box; 
+            background-color: transparent; font-family: inherit; color: var(--text-main);
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+        .form-control[readonly] { background-color: var(--bg); color: var(--text-muted); cursor: default; }
+        textarea.form-control { resize: vertical; min-height: 60px; }
+
+        #dynamic-fields-container { 
+            background: var(--bg); padding: 12px; border-radius: 4px; 
+            margin-bottom: 16px; display: none; border: 1px solid var(--border);
+        }
+        #dynamic-fields-container.active { display: block; }
+        .dynamic-title { font-size: 0.75rem; color: var(--text-main); margin-bottom: 10px; font-weight: 600; text-transform: uppercase;}
+
+        .viewport { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 4px; overflow: hidden; margin: 8px 0; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .gallery-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+        .thumbnail-wrapper { position: relative; flex-shrink: 0; width: 60px; height: 60px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+        .thumbnail-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .badge-count { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;}
+
+        .hidden { display: none !important; }
+        .btn-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 16px;}
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row button { flex: 1; }
+        
+        button.action-btn { padding: 10px; font-size: 0.85rem; font-weight: 600; border-radius: 4px; border: none; cursor: pointer; }
+        button.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-primary-form { background: var(--text-main); color: white; }
+        .btn-success-form { background: #111827; color: white; }
+        .btn-outline-form { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
+
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); backdrop-filter: blur(2px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay" class="hidden">Menyimpan data...</div>
+
+    <div id="page-dashboard" class="container">
+        <div class="header">
+            <h2>Daftar Task Harian</h2>
+            <div class="status-bar">
+                <span>Shift Berjalan</span>
+                <span id="date-status-dash"></span>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Waktu</th>
+                        <th style="width: 20%;">Siklus</th>
+                        <th style="width: 20%;">Station</th>
+                        <th style="width: 35%;">Aktivitas</th>
+                        <th style="width: 10%; text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="task-list">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-form" class="container hidden" style="max-width: 460px;">
+        <div class="header">
+            <h2>Laporan Aktivitas</h2>
+            <button class="btn-back" onclick="kembaliKeDashboard()">Batal</button>
+            <div class="status-bar">
+                <span id="gps-status">Mencari GPS...</span>
+                <span id="date-status-form"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Nama Pengisi</label>
+            <input type="text" id="input-nama" class="form-control" placeholder="Ketik nama Anda">
+        </div>
+
+        <div class="form-group">
+            <label>Station</label>
+            <input type="text" id="input-posisi" class="form-control" readonly>
+        </div>
+
+        <div class="form-group">
+            <label>Aktivitas</label>
+            <textarea id="input-activity" class="form-control" style="min-height: 50px;" readonly></textarea>
+        </div>
+
+        <div id="dynamic-fields-container">
+            <div class="dynamic-title">Parameter Spesifik Bisnis</div>
+            <div id="dynamic-inputs-area"></div>
+        </div>
+
+        <div class="form-group" id="group-jumlah" style="display: none;">
+            <label>Jumlah (Kuantitas)</label>
+            <input type="number" id="input-jumlah" class="form-control" placeholder="Opsional jika tidak relevan">
+        </div>
+
+        <div class="form-group">
+            <label>Hasil Akhir / Kesimpulan Umum</label>
+            <textarea id="input-hasil" class="form-control" placeholder="Aman / Berfungsi / Ada catatan lain..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 4px;">
+            <label>Bukti Foto Aktual</label>
+        </div>
+        <div class="viewport">
+            <video id="kamera" autoplay playsinline></video>
+        </div>
+        <div id="galeri-foto" class="gallery-container hidden"></div>
+
+        <div class="btn-stack">
+            <button id="btn-jepret" class="action-btn btn-primary-form" disabled>Ambil Foto</button>
+            <div id="btn-group-action" class="btn-row hidden">
+                <button id="btn-jepret-lagi" class="action-btn btn-outline-form">Tambah Foto</button>
+                <button id="btn-kirim" class="action-btn btn-success-form">Kirim Laporan</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="kanvas" style="display:none;"></canvas>
+
+    <script>
+        // --- DATA LIST ACTIVITY DARI SPREADSHEET (Baris 3 - 49) ---
+        let dummyTasks = [
+            // --- KASIR ---
+            { id: 1, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Nyalakan & sinkronisasi POS", status: "submit" },
+            { id: 2, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Nyalakan printer nota", status: "submit" },
+            { id: 3, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Hitung modal awal (Cash Float)", status: "submit" },
+            { id: 4, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Nyalakan TV menu", status: "submit" },
+            { id: 5, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Online Grab & update stok kosong", status: "submit" },
+            { id: 6, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Online GoFood & update stok kosong", status: "submit" },
+            { id: 7, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Online ShopeeFood & update stok kosong", status: "submit" },
+            { id: 8, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Nyalakan sound system", status: "submit" },
+            { id: 9, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Cek EDC (pastikan sudah settlement)", status: "submit" },
+            { id: 10, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Lakukan Start of Day POS", status: "submit" },
+            { id: 11, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Test print nota & stiker", status: "submit" },
+            { id: 12, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Kasir", activity: "Handover uang cash ke SL/SPV", status: "submit" },
+
+            // --- CHECKER ---
+            { id: 13, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Checker", activity: "Siapkan packaging (cup, straw, bag)", status: "submit" },
+            { id: 14, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Checker", activity: "Nyalakan tablet KDS", status: "submit" },
+
+            // --- STOCK KEEPER ---
+            { id: 15, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Cek FIFO/FEFO bahan baku", status: "submit" },
+            { id: 16, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Cek kualitas bahan baku", status: "submit" },
+            { id: 17, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Crosscheck stok fisik vs data semalam", status: "submit" },
+            { id: 18, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Catat & infokan stok menipis", status: "submit" },
+            { id: 19, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Cek suhu chiller & freezer", status: "submit" },
+            { id: 20, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Cek label expired (Daydote)", status: "submit" },
+            { id: 21, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Update stok di Accurate", status: "submit" },
+            { id: 22, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Stock Keeper", activity: "Kirim barang ke area bar/produksi", status: "submit" },
+
+            // --- CLEAR UP ---
+            { id: 23, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Clear Up", activity: "Bersihkan area dine-in, toilet & parkir", status: "submit" },
+            { id: 24, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Clear Up", activity: "Nyalakan AC (Setting 20°C)", status: "submit" },
+            { id: 25, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Clear Up", activity: "Cek ketersediaan sabun & tisu", status: "submit" },
+            { id: 26, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Clear Up", activity: "Cek filter air", status: "submit" },
+            { id: 27, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Clear Up", activity: "Buat cairan sanitizer", status: "submit" },
+            { id: 28, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Clear Up", activity: "Pasang trash bag baru", status: "submit" },
+
+            // --- BARISTA ---
+            { id: 29, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Barista", activity: "Nyalakan grinder & perlengkapan tamping", status: "submit" },
+            { id: 30, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Barista", activity: "Nyalakan mesin espresso", status: "submit" },
+            { id: 31, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Barista", activity: "Kalibrasi espresso (36ml, 40 dtk, layer ideal)", status: "submit" },
+            { id: 32, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Barista", activity: "Cek kelayakan sisa espresso semalam", status: "submit" },
+            { id: 33, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Barista", activity: "Produksi sesuai batching", status: "submit" },
+
+            // --- PREP & SEAL ---
+            { id: 34, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Prep & Seal", activity: "Pastikan printer stiker & KDS aktif", status: "submit" },
+            { id: 35, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Prep & Seal", activity: "Nyalakan mesin dosing", status: "submit" },
+            { id: 36, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Prep & Seal", activity: "Nyalakan mesin sealer", status: "submit" },
+            { id: 37, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Prep & Seal", activity: "Cek kelayakan base minuman sisa semalam", status: "submit" },
+            { id: 38, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "Prep & Seal", activity: "Produksi sesuai batching", status: "submit" },
+
+            // --- SL / SHIFT SPV ---
+            { id: 39, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "SL / Shift SPV", activity: "Setor uang sales sisa semalam", status: "submit" },
+
+            // --- ALL STATION ---
+            { id: 40, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Briefing tim", status: "submit" },
+            { id: 41, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek kuku (pastikan pendek & bersih)", status: "submit" },
+            { id: 42, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek rambut rapi (Laki-laki)", status: "submit" },
+            { id: 43, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek rambut terikat (Perempuan)", status: "submit" },
+            { id: 44, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek kumis & jenggot tercukur rapi", status: "submit" },
+            { id: 45, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek seragam sesuai jadwal", status: "submit" },
+            { id: 46, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek saku (steril dari barang pribadi/uang)", status: "submit" },
+            { id: 47, waktu: "06.00 - 10.00", siklus: "Opening / Pre Rush 1", station: "All Station", activity: "Cek jadwal produksi tersedia", status: "submit" }
+        ];
+
+        let idTaskAktif = null;
+
+        function renderDashboard() {
+            const tbody = document.getElementById('task-list');
+            tbody.innerHTML = '';
+            
+            let prevWaktu = "";
+            let prevSiklus = "";
+
+            dummyTasks.forEach(task => {
+                let statusHtml = task.status === "done" 
+                    ? `<span class="badge-done">DONE</span>` 
+                    : `<button class="btn-submit" onclick="bukaForm(${task.id}, '${task.station}', '${task.activity.replace(/'/g, "\\'")}')">SUBMIT</button>`;
+                
+                let showWaktu = task.waktu !== prevWaktu ? `<strong>${task.waktu}</strong>` : "";
+                let showSiklus = task.siklus !== prevSiklus ? `<span style="color: var(--text-muted);">${task.siklus}</span>` : "";
+                let stationHtml = `<strong>${task.station}</strong>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${showWaktu}</td>
+                        <td>${showSiklus}</td>
+                        <td>${stationHtml}</td>
+                        <td>${task.activity}</td>
+                        <td style="text-align: center;">${statusHtml}</td>
+                    </tr>
+                `;
+
+                prevWaktu = task.waktu;
+                prevSiklus = task.siklus;
+            });
+        }
+
+        const pageDashboard = document.getElementById('page-dashboard');
+        const pageForm = document.getElementById('page-form');
+        
+        const hariIni = new Date().toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+        document.getElementById('date-status-dash').innerText = hariIni;
+        document.getElementById('date-status-form').innerText = hariIni;
+
+        function bukaForm(taskId, stationName, activityName) {
+            idTaskAktif = taskId;
+            pageDashboard.classList.add('hidden');
+            pageForm.classList.remove('hidden');
+            document.getElementById('input-posisi').value = stationName;
+            document.getElementById('input-activity').value = activityName;
+            
+            renderDynamicFieldsSmart(activityName);
+            initSistemKameraDanGPS();
+        }
+
+        function kembaliKeDashboard() {
+            idTaskAktif = null;
+            pageForm.classList.add('hidden');
+            pageDashboard.classList.remove('hidden');
+            resetFormArea();
+        }
+
+        function resetFormArea() {
+            document.getElementById('input-jumlah').value = '';
+            document.getElementById('input-hasil').value = '';
+            document.getElementById('dynamic-fields-container').classList.remove('active');
+            document.getElementById('dynamic-inputs-area').innerHTML = '';
+            arrayFotoB64 = [];
+            document.getElementById('galeri-foto').innerHTML = '';
+            document.getElementById('galeri-foto').classList.add('hidden');
+            document.getElementById('btn-group-action').classList.add('hidden');
+            document.getElementById('btn-jepret').classList.remove('hidden');
+            document.getElementById('group-jumlah').style.display = 'block'; // reset view jumlah
+        }
+
+        renderDashboard();
+
+        function renderDynamicFieldsSmart(activityText) {
+            const act = activityText.toLowerCase();
+            const container = document.getElementById('dynamic-fields-container');
+            const area = document.getElementById('dynamic-inputs-area');
+            let html = "";
+
+            if (act.includes("kalibrasi")) {
+                html = `
+                    <div class="form-group"><label>Dose In (Gram)</label><input type="number" class="form-control dyn-input" data-key="kalibrasi_dose"></div>
+                    <div class="form-group"><label>Yield Out (ml)</label><input type="number" class="form-control dyn-input" data-key="kalibrasi_yield"></div>
+                    <div class="form-group"><label>Waktu Ekstraksi (Detik)</label><input type="number" class="form-control dyn-input" data-key="kalibrasi_waktu"></div>
+                    <div class="form-group"><label>Profil Rasa Aktual</label>
+                        <select class="form-control dyn-input" data-key="kalibrasi_rasa">
+                            <option value="Balanced / Ideal">Balanced / Ideal (Bisa Dijual)</option>
+                            <option value="Too Sour / Under">Terlalu Asam (Under-extracted)</option>
+                            <option value="Too Bitter / Over">Terlalu Pahit/Gosong (Over-extracted)</option>
+                        </select>
+                    </div>
+                `;
+                document.getElementById('group-jumlah').style.display = 'none'; // Sembunyikan jumlah statis
+            } else if (act.includes("suhu")) {
+                html = `
+                    <div class="form-group"><label>Suhu Chiller Aktual (°C)</label><input type="number" class="form-control dyn-input" data-key="suhu_chiller" placeholder="Normal: 0-4°C"></div>
+                    <div class="form-group"><label>Suhu Freezer Aktual (°C)</label><input type="number" class="form-control dyn-input" data-key="suhu_freezer" placeholder="Normal: -18°C"></div>
+                    <div class="form-group"><label>Status Bahan di Dalamnya</label>
+                        <select class="form-control dyn-input" data-key="suhu_tindakan">
+                            <option value="Aman">Suhu Normal, Bahan Aman</option>
+                            <option value="Warning">Suhu Naik, Segera Pindahkan Bahan</option>
+                        </select>
+                    </div>
+                `;
+                document.getElementById('group-jumlah').style.display = 'none';
+            } else if (act.includes("cash") || act.includes("uang") || act.includes("modal") || act.includes("settlement")) {
+                html = `
+                    <div class="form-group"><label>Total Uang di Sistem POS (Rp)</label><input type="number" class="form-control dyn-input" data-key="uang_sistem"></div>
+                    <div class="form-group"><label>Total Fisik Uang Aktual (Rp)</label><input type="number" class="form-control dyn-input" data-key="uang_fisik"></div>
+                    <div class="form-group"><label>Nominal Selisih (+ / -)</label><input type="number" class="form-control dyn-input" data-key="uang_selisih" placeholder="Isi 0 jika balance"></div>
+                `;
+                document.getElementById('group-jumlah').style.display = 'none';
+            } else if (act.includes("inventory") || act.includes("stock") || act.includes("bahan") || act.includes("stok")) {
+                html = `
+                    <div class="form-group"><label>Daftar Barang Menipis (Perlu Order)</label><textarea class="form-control dyn-input" data-key="stok_menipis" placeholder="Contoh: Cup 16oz sisa 1 slop"></textarea></div>
+                    <div class="form-group"><label>Jumlah Waste / Dibuang (Item)</label><input type="number" class="form-control dyn-input" data-key="waste_jumlah" placeholder="Isi 0 jika tidak ada yang dibuang"></div>
+                    <div class="form-group"><label>Alasan Waste</label><textarea class="form-control dyn-input" data-key="waste_alasan" placeholder="Contoh: Susu basi 2 liter, salah cetak orderan..."></textarea></div>
+                `;
+                document.getElementById('group-jumlah').style.display = 'none';
+            } else if (act.includes("bersih") || act.includes("toilet") || act.includes("clear up")) {
+                html = `
+                    <div class="form-group"><label>Kondisi Area Pelanggan</label>
+                        <select class="form-control dyn-input" data-key="kondisi_area">
+                            <option value="Bersih & Lengkap">Bersih & Supplies Lengkap</option>
+                            <option value="Kotor / Kurang">Masih Kotor / Supplies Habis</option>
+                        </select>
+                    </div>
+                `;
+                document.getElementById('group-jumlah').style.display = 'none';
+            } else {
+                document.getElementById('group-jumlah').style.display = 'block'; // Munculkan jumlah jika form biasa
+            }
+
+            if (html !== "") {
+                area.innerHTML = html;
+                container.classList.add('active');
+            } else {
+                area.innerHTML = "";
+                container.classList.remove('active');
+            }
+        }
+
+        let dataLokasi = { lat: null, lon: null };
+        let arrayFotoB64 = []; 
+        let isSystemReady = false;
+
+        function initSistemKameraDanGPS() {
+            if(isSystemReady) return; 
+            navigator.geolocation.getCurrentPosition((pos) => {
+                dataLokasi.lat = pos.coords.latitude; dataLokasi.lon = pos.coords.longitude;
+                document.getElementById('gps-status').innerText = "GPS Aktif";
+                document.getElementById('gps-status').style.color = "var(--primary)";
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                    .then(stream => {
+                        document.getElementById('kamera').srcObject = stream;
+                        document.getElementById('btn-jepret').disabled = false;
+                        isSystemReady = true;
+                    });
+            }, () => {
+                document.getElementById('gps-status').innerText = "GPS Gagal";
+            }, { enableHighAccuracy: true });
+        }
+
+        function ambilFoto() {
+            const kanvas = document.getElementById('kanvas');
+            const kamera = document.getElementById('kamera');
+            kanvas.width = kamera.videoWidth; kanvas.height = kamera.videoHeight;
+            kanvas.getContext('2d').drawImage(kamera, 0, 0);
+            arrayFotoB64.push(kanvas.toDataURL('image/jpeg', 0.7));
+            
+            const galeri = document.getElementById('galeri-foto');
+            galeri.innerHTML = '';
+            arrayFotoB64.forEach((foto, i) => {
+                galeri.innerHTML += `<div class="thumbnail-wrapper"><img src="${foto}"><span class="badge-count">${i+1}</span></div>`;
+            });
+            
+            document.getElementById('btn-jepret').classList.add('hidden');
+            galeri.classList.remove('hidden');
+            document.getElementById('btn-group-action').classList.remove('hidden');
+            galeri.scrollLeft = galeri.scrollWidth;
+        }
+
+        document.getElementById('btn-jepret').onclick = ambilFoto;
+        document.getElementById('btn-jepret-lagi').onclick = ambilFoto;
+
+        document.getElementById('btn-kirim').onclick = () => {
+            const nama = document.getElementById('input-nama').value;
+            const posisi = document.getElementById('input-posisi').value;
+            const activity = document.getElementById('input-activity').value;
+            const jumlah = document.getElementById('input-jumlah').value;
+            const hasil = document.getElementById('input-hasil').value;
+
+            if(!nama || !hasil) return alert("Mohon lengkapi Nama dan Hasil Akhir.");
+            if(arrayFotoB64.length === 0) return alert("Lampirkan minimal 1 foto.");
+
+            let detailData = {};
+            document.querySelectorAll('.dyn-input').forEach(input => {
+                detailData[input.getAttribute('data-key')] = input.value;
+            });
+
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            
+            const payload = {
+                nama: nama, posisi: posisi, activity: activity, jumlah: jumlah, hasil: hasil,
+                detail_aktivitas: detailData, fotos: arrayFotoB64,
+                latitude: dataLokasi.lat, longitude: dataLokasi.lon,
+                waktu: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T') + '+07:00'
+            };
+
+            fetch('https://n8n.muafibuilds.my.id/webhook-test/qc-kopi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                if (idTaskAktif !== null) {
+                    const taskIndex = dummyTasks.findIndex(t => t.id === idTaskAktif);
+                    if (taskIndex !== -1) dummyTasks[taskIndex].status = "done";
+                }
+                document.getElementById('loading-overlay').classList.add('hidden');
+                renderDashboard();
+                kembaliKeDashboard();
+            }).catch(() => {
+                alert("Gagal kirim. Periksa koneksi.");
+                document.getElementById('loading-overlay').classList.add('hidden');
+            });
+        };
+    </script>
+</body>
+</html>
