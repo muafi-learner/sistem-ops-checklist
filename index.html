@@ -477,81 +477,25 @@ function initSistemKameraDanGPS() {
     const kamera = document.getElementById('kamera');
     const ctx = kanvas.getContext('2d');
 
-    // --- LOGIKA RESIZE / KOMPRESI FOTO ---
-    const MAX_DIMENSION = 800; // Maksimal resolusi 800px (Sangat ringan tapi tetap jelas)
+    // Cukup perkecil foto jadi max 800px biar enteng dikirim
+    const MAX_DIMENSION = 800;
     let width = kamera.videoWidth;
     let height = kamera.videoHeight;
 
-    // Kalkulasi rasio untuk memperkecil gambar jika melebihi batas
-    if (width > height) {
-        if (width > MAX_DIMENSION) {
-            height *= MAX_DIMENSION / width;
-            width = MAX_DIMENSION;
-        }
-    } else {
-        if (height > MAX_DIMENSION) {
-            width *= MAX_DIMENSION / height;
-            height = MAX_DIMENSION;
-        }
+    if (width > height && width > MAX_DIMENSION) {
+        height *= MAX_DIMENSION / width; width = MAX_DIMENSION;
+    } else if (height > MAX_DIMENSION) {
+        width *= MAX_DIMENSION / height; height = MAX_DIMENSION;
     }
 
-    // Set kanvas dengan ukuran yang sudah di-resize
     kanvas.width = width; 
     kanvas.height = height;
-    
-    // Gambar kamera ke kanvas dengan ukuran baru
     ctx.drawImage(kamera, 0, 0, width, height);
 
-    // --- BIKIN EFEK GRADIEN HITAM DI BAWAH ---
-    const tinggiGradien = Math.max(80, kanvas.height * 0.25);
-    const yMulaiGradien = kanvas.height - tinggiGradien;
-    
-    const gradient = ctx.createLinearGradient(0, yMulaiGradien, 0, kanvas.height);
-    gradient.addColorStop(0, "transparent");
-    gradient.addColorStop(1, "rgba(0, 0, 0, 0.85)");
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, yMulaiGradien, kanvas.width, tinggiGradien);
-
-    // --- SIAPKAN DATA TEKS ---
-    const d = new Date();
-    const namaBulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-    const waktuTeks = `${d.getDate().toString().padStart(2, '0')}-${namaBulan[d.getMonth()]}-${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')} WIB`;
-    
-    const koordinatTeks = dataLokasi.lat ? `${dataLokasi.lat.toFixed(6)}, ${dataLokasi.lon.toFixed(6)}` : "Sedang mencari koordinat...";
-    const alamatTeks = dataLokasi.address || "Lokasi belum terdeteksi";
-    
-    const picTeks = document.getElementById('input-pic-crew').value || "Crew";
-    const infoTeks = `PIC: ${picTeks} | Area: ${document.getElementById('input-posisi').value}`;
-
-    // --- SETTING FONT & GAYA TULISAN ---
-    // Sesuaikan font agar proporsional dengan kanvas yang sudah diperkecil
-    const fontSize = Math.max(12, Math.floor(kanvas.height * 0.03)); 
-    ctx.font = `500 ${fontSize}px "Inter", sans-serif`;
-    ctx.fillStyle = "white"; 
-    ctx.textAlign = "left";  
-    ctx.textBaseline = "bottom";
-
-    ctx.shadowColor = "black";
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 1;
-    ctx.shadowBlur = 3;
-
-    // --- CETAK TEKS ---
-    const marginX = 10;
-    const startY = kanvas.height - 10;
-    const spacing = fontSize + 4; 
-
-    ctx.fillText(infoTeks, marginX, startY);
-    ctx.fillText(alamatTeks, marginX, startY - spacing);
-    ctx.fillText(koordinatTeks, marginX, startY - (spacing * 2));
-    ctx.fillText(waktuTeks, marginX, startY - (spacing * 3));
-
-    ctx.shadowColor = "transparent";
-
-    // --- SIMPAN KE GALERI (Kualitas dikompres ke 0.7) ---
+    // Langsung simpan ke array (tanpa tulisan apa-apa)
     arrayFotoB64.push(kanvas.toDataURL('image/jpeg', 0.7));
     
+    // Update tampilan UI
     const galeri = document.getElementById('galeri-foto');
     galeri.innerHTML = '';
     arrayFotoB64.forEach((foto, i) => {
@@ -561,7 +505,6 @@ function initSistemKameraDanGPS() {
     document.getElementById('btn-jepret').classList.add('hidden');
     galeri.classList.remove('hidden');
     document.getElementById('btn-group-action').classList.remove('hidden');
-    galeri.scrollLeft = galeri.scrollWidth;
 }
 
         document.getElementById('btn-jepret').onclick = ambilFoto;
