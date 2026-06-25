@@ -511,7 +511,7 @@
                 waktu: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T') + '+07:00'
             };
 
-            fetch('https://n8n.muafibuilds.my.id/webhook-test/ops-checklist', {
+            fetch('https://n8n.muafibuilds.my.id/webhook/ops-checklist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                 body: JSON.stringify(payload)
