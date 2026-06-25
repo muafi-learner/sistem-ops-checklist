@@ -432,45 +432,82 @@
             }
         }
 
-        let dataLokasi = { lat: null, lon: null };
-        let arrayFotoB64 = []; 
-        let isSystemReady = false;
+        let dataLokasi = { lat: null, lon: null, address: "Sedang mencari lokasi..." };
+let isSystemReady = false;
 
-        function initSistemKameraDanGPS() {
-            if(isSystemReady) return; 
-            navigator.geolocation.getCurrentPosition((pos) => {
-                dataLokasi.lat = pos.coords.latitude; dataLokasi.lon = pos.coords.longitude;
-                document.getElementById('gps-status').innerText = "GPS Aktif";
-                document.getElementById('gps-status').style.color = "var(--primary)";
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                    .then(stream => {
-                        document.getElementById('kamera').srcObject = stream;
-                        document.getElementById('btn-jepret').disabled = false;
-                        isSystemReady = true;
-                    });
-            }, () => {
-                document.getElementById('gps-status').innerText = "GPS Gagal";
-            }, { enableHighAccuracy: true });
+function initSistemKameraDanGPS() {
+    if(isSystemReady) return; 
+
+    // --- 1. NYALAKAN KAMERA LANGSUNG (TIDAK PERLU NUNGGU GPS) ---
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+            document.getElementById('kamera').srcObject = stream;
+            document.getElementById('btn-jepret').disabled = false;
+            isSystemReady = true;
+        }).catch((err) => {
+            alert("Gagal mengakses kamera. Pastikan izin kamera aktif!");
+        });
+
+    // --- 2. CARI LOKASI & NAMA JALAN DI BACKGROUND ---
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        dataLokasi.lat = pos.coords.latitude; 
+        dataLokasi.lon = pos.coords.longitude;
+        document.getElementById('gps-status').innerText = "GPS Aktif";
+        document.getElementById('gps-status').style.color = "var(--primary)";
+
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${dataLokasi.lat}&lon=${dataLokasi.lon}`);
+            const data = await response.json();
+            const addr = data.address || {};
+            
+            const kecamatan = addr.village || addr.suburb || addr.town || "";
+            const kota = addr.city || addr.county || "";
+            const provinsi = addr.state || "";
+            
+            dataLokasi.address = `${kecamatan}, ${kota}, ${provinsi}`.toUpperCase().replace(/^,\s*/, '');
+        } catch (error) {
+            dataLokasi.address = "ALAMAT LOKASI TIDAK DITEMUKAN";
         }
+    }, () => {
+        document.getElementById('gps-status').innerText = "GPS Gagal";
+        document.getElementById('gps-status').style.color = "var(--danger)";
+    }, { enableHighAccuracy: true });
+}
 
         function ambilFoto() {
-            const kanvas = document.getElementById('kanvas');
-            const kamera = document.getElementById('kamera');
-            kanvas.width = kamera.videoWidth; kanvas.height = kamera.videoHeight;
-            kanvas.getContext('2d').drawImage(kamera, 0, 0);
-            arrayFotoB64.push(kanvas.toDataURL('image/jpeg', 0.7));
-            
-            const galeri = document.getElementById('galeri-foto');
-            galeri.innerHTML = '';
-            arrayFotoB64.forEach((foto, i) => {
-                galeri.innerHTML += `<div class="thumbnail-wrapper"><img src="${foto}"><span class="badge-count">${i+1}</span></div>`;
-            });
-            
-            document.getElementById('btn-jepret').classList.add('hidden');
-            galeri.classList.remove('hidden');
-            document.getElementById('btn-group-action').classList.remove('hidden');
-            galeri.scrollLeft = galeri.scrollWidth;
-        }
+    const kanvas = document.getElementById('kanvas');
+    const kamera = document.getElementById('kamera');
+    const ctx = kanvas.getContext('2d');
+
+    // Cukup perkecil foto jadi max 800px biar enteng dikirim
+    const MAX_DIMENSION = 800;
+    let width = kamera.videoWidth;
+    let height = kamera.videoHeight;
+
+    if (width > height && width > MAX_DIMENSION) {
+        height *= MAX_DIMENSION / width; width = MAX_DIMENSION;
+    } else if (height > MAX_DIMENSION) {
+        width *= MAX_DIMENSION / height; height = MAX_DIMENSION;
+    }
+
+    kanvas.width = width; 
+    kanvas.height = height;
+    ctx.drawImage(kamera, 0, 0, width, height);
+
+    // Langsung simpan ke array (tanpa tulisan apa-apa)
+    arrayFotoB64.push(kanvas.toDataURL('image/jpeg', 0.7));
+    
+    // Update tampilan UI
+    const galeri = document.getElementById('galeri-foto');
+    galeri.innerHTML = '';
+    arrayFotoB64.forEach((foto, i) => {
+        galeri.innerHTML += `<div class="thumbnail-wrapper"><img src="${foto}"><span class="badge-count">${i+1}</span></div>`;
+    });
+    
+    document.getElementById('btn-jepret').classList.add('hidden');
+    galeri.classList.remove('hidden');
+    document.getElementById('btn-group-action').classList.remove('hidden');
+}
 
         document.getElementById('btn-jepret').onclick = ambilFoto;
         document.getElementById('btn-jepret-lagi').onclick = ambilFoto;
@@ -507,7 +544,7 @@
                 waktu: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T') + '+07:00'
             };
 
-            fetch('https://n8n.muafibuilds.my.id/webhook-test/qc-kopi', {
+            fetch('https://n8n.muafibuilds.my.id/webhook/ops-checklist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                 body: JSON.stringify(payload)
