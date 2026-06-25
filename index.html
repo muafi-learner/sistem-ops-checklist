@@ -476,6 +476,12 @@
             galeri.scrollLeft = galeri.scrollWidth;
         }
 
+        function logoutSistem() {
+            sessionStorage.clear();
+            localStorage.removeItem('savedQCData'); // <--- Ini kunci untuk mereset memori task
+            location.reload();
+        }
+
         document.getElementById('btn-jepret').onclick = ambilFoto;
         document.getElementById('btn-jepret-lagi').onclick = ambilFoto;
 
